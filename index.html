@@ -1,1 +1,165 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Telegram Mini App</title>
+    <!-- Подключаем официальный SDK Telegram -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        /* Автоматическая адаптация под цвета темы Telegram */
+        :root {
+            --bg-color: var(--tg-theme-bg-color, #ffffff);
+            --text-color: var(--tg-theme-text-color, #222222);
+            --hint-color: var(--tg-theme-hint-color, #999999);
+            --button-color: var(--tg-theme-button-color, #3390ec);
+            --button-text-color: var(--tg-theme-button-text-color, #ffffff);
+            --secondary-bg: var(--tg-theme-secondary-bg-color, #f1f1f1);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 16px;
+            box-sizing: border-box;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 22px;
+            margin-bottom: 8px;
+        }
+
+        .card {
+            background-color: var(--secondary-bg);
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 16px;
+        }
+
+        .card p {
+            margin: 6px 0;
+            font-size: 14px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--hint-color);
+            border-radius: 8px;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-size: 16px;
+            box-sizing: border-box;
+            margin-bottom: 12px;
+        }
+
+        button.action-btn {
+            background-color: var(--button-color);
+            color: var(--button-text-color);
+            border: none;
+            border-radius: 8px;
+            padding: 12px;
+            width: 100%;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .result {
+            margin-top: 15px;
+            font-weight: bold;
+            font-size: 16px;
+            color: var(--button-color);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Привет, <span id="username">Гость</span>! 👋</h1>
+        <p style="color: var(--hint-color); margin-top: 0;">Добро пожаловать в ваше Telegram Mini App</p>
+
+        <!-- Блок информации о пользователе из Telegram -->
+        <div class="card">
+            <p><strong>ID:</strong> <span id="user-id">-</span></p>
+            <p><strong>Username:</strong> <span id="user-handle">-</span></p>
+        </div>
+
+        <!-- Интерактивный блок (например, простой калькулятор / форма) -->
+        <div class="card">
+            <label for="inputValue">Введите параметр:</label>
+            <input type="number" id="inputValue" placeholder="Например, 100" value="10">
+
+            <label for="selectOption">Выберите категорию:</label>
+            <select id="selectOption">
+                <option value="1.5">Базовый тариф (x1.5)</option>
+                <option value="2.0">Стандартный тариф (x2.0)</option>
+                <option value="2.5">Премиум тариф (x2.5)</option>
+            </select>
+
+            <button class="action-btn" onclick="calculate()">Рассчитать</button>
+
+            <div class="result" id="resultBlock">Результат: 0</div>
+        </div>
+    </div>
+
+    <script>
+        // 1. Инициализация Telegram WebApp
+        const tg = window.Telegram.WebApp;
+        
+        // Разворачиваем на весь экран
+        tg.expand();
+        
+        // Сообщаем Telegram, что приложение готово
+        tg.ready();
+
+        // 2. Получаем данные пользователя из Telegram
+        const user = tg.initDataUnsafe?.user;
+        if (user) {
+            document.getElementById('username').innerText = user.first_name || 'Пользователь';
+            document.getElementById('user-id').innerText = user.id || 'Неизвестно';
+            document.getElementById('user-handle').innerText = user.username ? '@' + user.username : 'отсутствует';
+        }
+
+        // 3. Пример логики калькулятора / функционала
+        function calculate() {
+            const val = parseFloat(document.getElementById('inputValue').value) || 0;
+            const multiplier = parseFloat(document.getElementById('selectOption').value) || 1;
+            const total = val * multiplier;
+
+            document.getElementById('resultBlock').innerText = `Результат: ${total}`;
+
+            // Показываем стандартное всплывающее уведомление Telegram
+            tg.HapticFeedback.impactOccurred('medium'); // Тактильный отклик при клике
+        }
+
+        // 4. Пример работы с системной главной кнопкой Telegram (MainButton)
+        tg.MainButton.text = "ОТПРАВИТЬ ДАННЫЕ";
+        tg.MainButton.color = tg.themeParams.button_color || "#3390ec";
+        tg.MainButton.textColor = tg.themeParams.button_text_color || "#ffffff";
+        tg.MainButton.show();
+
+        // Событие при нажатии на нижнюю кнопку Telegram
+        Telegram.WebApp.onEvent('mainButtonClicked', function(){
+            const val = document.getElementById('resultBlock').innerText;
+            tg.sendData(val); // Отправляет данные обратно боту в чат и закрывает Mini App
+        });
+    </script>
+</body>
+</html>
 
