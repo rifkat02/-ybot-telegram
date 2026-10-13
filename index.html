@@ -1,508 +1,100 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Аукцион рисунков</title>
-    <!-- Telegram WebApp SDK -->
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <style>
-        :root {
-            --bg-color: var(--tg-theme-bg-color, #18222d);
-            --text-color: var(--tg-theme-text-color, #ffffff);
-            --hint-color: var(--tg-theme-hint-color, #708499);
-            --button-color: var(--tg-theme-button-color, #2ea6ff);
-            --button-text-color: var(--tg-theme-button-text-color, #ffffff);
-            --secondary-bg: var(--tg-theme-secondary-bg-color, #212d3b);
-            --accent-color: #ffd700;
-            --danger-color: #e53935;
-            --success-color: #4caf50;
+// 1. Нажатие на кнопку "Купить сразу"
+function buyNow() {
+    if (!isAuctionActive) return;
+
+    tg.showConfirm(`Вы уверены, что хотите купить этот лот за ${buyNowPrice.toLocaleString('ru-RU')} ₽?`, (confirmed) => {
+        if (confirmed) {
+            showPaymentModal();
         }
+    });
+}
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            margin: 0;
-            padding: 16px;
-            box-sizing: border-box;
-        }
-
-        .container {
-            max-width: 500px;
-            margin: 0 auto;
-        }
-
-        /* Навигация админа */
-        .admin-nav {
-            display: none;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px;
-            margin-bottom: 16px;
-            background-color: var(--secondary-bg);
-            padding: 4px;
-            border-radius: 12px;
-        }
-
-        .nav-btn {
-            background: none;
-            border: none;
-            color: var(--hint-color);
-            padding: 10px;
-            font-size: 14px;
-            font-weight: bold;
-            border-radius: 8px;
-            cursor: pointer;
-        }
-
-        .nav-btn.active {
-            background-color: var(--button-color);
-            color: var(--button-text-color);
-        }
-
-        /* Карточка лота */
-        .lot-card {
-            background-color: var(--secondary-bg);
-            border-radius: 16px;
-            overflow: hidden;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-            margin-bottom: 20px;
-        }
-
-        .lot-image {
-            width: 100%;
-            height: 280px;
-            object-fit: cover;
-            display: block;
-            background-color: #111;
-        }
-
-        .lot-details {
-            padding: 16px;
-        }
-
-        .lot-title {
-            font-size: 20px;
-            font-weight: bold;
-            margin: 0 0 6px 0;
-        }
-
-        .lot-author {
-            color: var(--hint-color);
-            font-size: 14px;
-            margin-bottom: 12px;
-        }
-
-        .lot-description {
-            font-size: 14px;
-            line-height: 1.4;
-            margin-bottom: 16px;
-        }
-
-        /* Таймер */
-        .timer-badge {
-            background: rgba(229, 57, 53, 0.15);
-            color: var(--danger-color);
-            padding: 8px 12px;
-            border-radius: 10px;
-            font-size: 14px;
-            font-weight: bold;
-            text-align: center;
-            margin-bottom: 14px;
-        }
-
-        .bid-info {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: rgba(255, 255, 255, 0.05);
-            padding: 12px;
-            border-radius: 12px;
-            margin-bottom: 12px;
-        }
-
-        .bid-box span {
-            display: block;
-            font-size: 12px;
-            color: var(--hint-color);
-        }
-
-        .bid-box strong {
-            font-size: 18px;
-            color: var(--accent-color);
-        }
-
-        .bid-input-group {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 10px;
-        }
-
-        input, textarea {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid var(--hint-color);
-            border-radius: 10px;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            font-size: 15px;
-            box-sizing: border-box;
-            outline: none;
-            margin-bottom: 10px;
-        }
-
-        .btn {
-            background-color: var(--button-color);
-            color: var(--button-text-color);
-            border: none;
-            border-radius: 10px;
-            padding: 12px 16px;
-            font-size: 15px;
-            font-weight: bold;
-            cursor: pointer;
-            width: 100%;
-        }
-
-        .btn-success {
-            background-color: var(--success-color);
-            margin-bottom: 10px;
-        }
-
-        .btn-danger {
-            background-color: var(--danger-color);
-        }
-
-        .history-title {
-            font-size: 16px;
-            font-weight: bold;
-            margin-top: 16px;
-            margin-bottom: 10px;
-        }
-
-        .history-list {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
-
-        .history-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 8px 0;
-            border-bottom: 1px solid rgba(255,255,255,0.08);
-            font-size: 14px;
-        }
-
-        .history-item:last-child {
-            border-bottom: none;
-        }
-
-        .user-name {
-            color: var(--hint-color);
-        }
-
-        /* Админ панель */
-        .admin-panel {
-            display: none;
-            background-color: var(--secondary-bg);
-            border-radius: 16px;
-            padding: 16px;
-        }
-
-        .admin-panel h3 {
-            margin-top: 0;
-            margin-bottom: 14px;
-        }
-
-        .admin-badge {
-            background: var(--accent-color);
-            color: #000;
-            padding: 2px 8px;
-            border-radius: 6px;
-            font-size: 12px;
-            font-weight: bold;
-            display: inline-block;
-            margin-bottom: 12px;
-        }
-    </style>
-</head>
-<body>
-
-    <div class="container">
-        <!-- Навигация -->
-        <div class="admin-nav" id="adminNav">
-            <button class="nav-btn active" onclick="switchTab('auction')">🔥 Аукцион</button>
-            <button class="nav-btn" onclick="switchTab('admin')">⚙️ Админка</button>
-        </div>
-
-        <!-- 1. Вкладка Аукциона -->
-        <div id="tabAuction">
-            <div class="lot-card">
-                <img id="lotImage" class="lot-image" src="https://picsum.photos/600/400?random=1" alt="Рисунок">
+// 2. Показ всплывающего окна с выбором способа оплаты
+function showPaymentModal() {
+    const modalHtml = `
+        <div id="payModal" style="position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.85); display:flex; align-items:center; justify-content:center; z-index:1000; padding:16px;">
+            <div style="background:var(--secondary-bg); padding:20px; border-radius:16px; width:100%; max-width:400px; text-align:center; box-sizing:border-box;">
+                <h3 style="margin-top:0; margin-bottom:8px;">💳 Выберите способ оплаты</h3>
+                <p style="font-size:14px; color:var(--hint-color); margin-bottom:16px;">Сумма к оплате: <strong style="color:var(--accent-color);">${buyNowPrice.toLocaleString('ru-RU')} ₽</strong></p>
                 
-                <div class="lot-details">
-                    <h2 class="lot-title" id="lotTitle">Закат над неоновым городом</h2>
-                    <div class="lot-author">Автор: @rumer07</div>
-                    <p class="lot-description" id="lotDesc">
-                        Оригинальный цифровой рисунок в высоком разрешении.
-                    </p>
-
-                    <!-- Таймер -->
-                    <div class="timer-badge" id="timerBadge">⏳ До окончания: 00:00:00</div>
-
-                    <div class="bid-info">
-                        <div class="bid-box">
-                            <span>Текущая ставка</span>
-                            <strong id="currentBid">1 000 ₽</strong>
-                        </div>
-                        <div class="bid-box" style="text-align: right;">
-                            <span>Мин. шаг</span>
-                            <strong id="minStepText">+100 ₽</strong>
-                        </div>
-                    </div>
-
-                    <!-- Форма ставки -->
-                    <div id="activeAuctionControls">
-                        <div class="bid-input-group">
-                            <input type="number" id="bidAmount" placeholder="Ваша ставка" value="1100" step="100">
-                            <button class="btn" style="width: auto;" onclick="makeBid()">Ставка</button>
-                        </div>
-                        <!-- Кнопка мгновенной покупки -->
-                        <button class="btn btn-success" id="buyNowBtn" onclick="buyNow()">⚡ Купить сразу за 5 000 ₽</button>
-                    </div>
-
-                    <div id="endedMessage" style="display: none; text-align: center; color: var(--danger-color); font-weight: bold; padding: 10px;">
-                        🚫 Аукцион завершен!
-                    </div>
-
-                    <div class="history-title">История ставок</div>
-                    <ul class="history-list" id="historyList">
-                        <li class="history-item">
-                            <span class="user-name">Стартовая цена</span>
-                            <strong>1 000 ₽</strong>
-                        </li>
-                    </ul>
+                <!-- Табы / Переключатель способов -->
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; background:var(--bg-color); padding:4px; border-radius:10px; margin-bottom:16px;">
+                    <button id="tabSbpBtn" class="nav-btn active" onclick="switchPayTab('sbp')">📱 СБП / Карта</button>
+                    <button id="tabOnlineBtn" class="nav-btn" onclick="switchPayTab('online')">💳 Онлайн-касса</button>
                 </div>
+
+                <!-- Вариант 1: СБП / Перевод -->
+                <div id="paySbpBlock">
+                    <div style="background:var(--bg-color); padding:12px; border-radius:10px; margin-bottom:12px; font-family:monospace; font-size:15px; text-align:left;">
+                        <strong>Номер:</strong> +7 (900) 000-00-00<br>
+                        <strong>Банк:</strong> Сбербанк / СБП<br>
+                        <strong>Получатель:</strong> Ваше Имя М.
+                    </div>
+                    <p style="font-size:12px; color:var(--hint-color); margin-bottom:12px;">Переведите точную сумму и нажмите кнопку ниже:</p>
+                    <button class="btn btn-success" onclick="confirmSbpPayment()">✅ Я перевел(а) деньги</button>
+                </div>
+
+                <!-- Вариант 2: Онлайн-оплата (ЮKassa/Tinkoff/и др.) -->
+                <div id="payOnlineBlock" style="display:none;">
+                    <p style="font-size:13px; color:var(--hint-color); margin-bottom:16px;">Безопасная оплата картой любой страны или через Tinkoff Pay / СберПэй.</p>
+                    <button class="btn" style="background:#28a745; margin-bottom:8px;" onclick="payViaGateway()">Перейти к оплате ↗</button>
+                </div>
+
+                <button class="btn" style="background:transparent; color:var(--hint-color); margin-top:8px;" onclick="closeModal()">Отмена</button>
             </div>
         </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+}
 
-        <!-- 2. Вкладка Админки -->
-        <div id="tabAdmin" class="admin-panel">
-            <span class="admin-badge">Панель администратора</span>
-            <h3>Создать новый лот</h3>
-            
-            <label style="font-size: 13px; color: var(--hint-color);">URL Изображения:</label>
-            <input type="text" id="adminImgUrl" value="https://picsum.photos/600/400?random=2">
+// 3. Переключение между табами оплаты
+function switchPayTab(type) {
+    const sbpBlock = document.getElementById('paySbpBlock');
+    const onlineBlock = document.getElementById('payOnlineBlock');
+    const sbpBtn = document.getElementById('tabSbpBtn');
+    const onlineBtn = document.getElementById('tabOnlineBtn');
 
-            <label style="font-size: 13px; color: var(--hint-color);">Название лота:</label>
-            <input type="text" id="adminTitle" value="Киберпанк Портрет">
+    if (type === 'sbp') {
+        sbpBlock.style.display = 'block';
+        onlineBlock.style.display = 'none';
+        sbpBtn.classList.add('active');
+        onlineBtn.classList.remove('active');
+    } else {
+        sbpBlock.style.display = 'none';
+        onlineBlock.style.display = 'block';
+        sbpBtn.classList.remove('active');
+        onlineBtn.classList.add('active');
+    }
+}
 
-            <label style="font-size: 13px; color: var(--hint-color);">Описание:</label>
-            <textarea id="adminDesc" rows="2">Эксклюзивный арт с полными правами.</textarea>
+// 4. Подтверждение оплаты по СБП
+function confirmSbpPayment() {
+    closeModal();
+    endAuction("🎉 Лот выкуплен! Ожидается подтверждение перевода.");
+    tg.HapticFeedback.notificationOccurred('success');
+    
+    // Передаем данные боту
+    const orderData = {
+        action: 'buy_now',
+        pay_method: 'СБП / Перевод',
+        price: buyNowPrice,
+        title: document.getElementById('lotTitle').innerText,
+        user: tg.initDataUnsafe?.user?.username ? `@${tg.initDataUnsafe.user.username}` : (tg.initDataUnsafe?.user?.first_name || 'Покупатель')
+    };
+    
+    tg.sendData(JSON.stringify(orderData));
+}
 
-            <label style="font-size: 13px; color: var(--hint-color);">Стартовая цена (₽):</label>
-            <input type="number" id="adminStartPrice" value="1500">
+// 5. Переход на внешнюю ссылку эквайринга
+function payViaGateway() {
+    // Укажите вашу ссылку на форму оплаты (например, ЮKassa или CloudPayments)
+    const paymentUrl = `https://yoomoney.ru/pay?amount=${buyNowPrice}`; 
+    
+    tg.openLink(paymentUrl); // Открывает платежную страницу
+}
 
-            <label style="font-size: 13px; color: var(--hint-color);">Минимальный шаг (₽):</label>
-            <input type="number" id="adminStep" value="150">
-
-            <label style="font-size: 13px; color: var(--hint-color);">Цена мгновенного выкупа (₽):</label>
-            <input type="number" id="adminBuyNow" value="6000">
-
-            <label style="font-size: 13px; color: var(--hint-color);">Длительность аукциона (минут):</label>
-            <input type="number" id="adminDuration" value="30">
-
-            <button class="btn" onclick="createNewLot()" style="margin-top: 10px;">Опубликовать и запустить</button>
-
-            <hr style="border: 0; border-top: 1px solid rgba(255,255,255,0.1); margin: 20px 0;">
-
-            <h3>Управление</h3>
-            <button class="btn btn-danger" onclick="resetBids()">Сбросить ставки</button>
-        </div>
-    </div>
-
-    <script>
-        const tg = window.Telegram.WebApp;
-        tg.expand();
-        tg.ready();
-
-        const ADMIN_ID = 8801572470; // Ваш Telegram ID
-
-        let currentMaxBid = 1000;
-        let minStep = 100;
-        let buyNowPrice = 5000;
-        let auctionEndTime = Date.now() + 30 * 60 * 1000; // По умолчанию 30 минут
-        let timerInterval = null;
-        let isAuctionActive = true;
-
-        const currentUser = tg.initDataUnsafe?.user;
-        if (currentUser && currentUser.id === ADMIN_ID) {
-            document.getElementById('adminNav').style.display = 'grid';
-        }
-
-        function switchTab(tab) {
-            const auctionTab = document.getElementById('tabAuction');
-            const adminTab = document.getElementById('tabAdmin');
-            const btns = document.querySelectorAll('.nav-btn');
-
-            if (tab === 'auction') {
-                auctionTab.style.display = 'block';
-                adminTab.style.display = 'none';
-                btns[0].classList.add('active');
-                btns[1].classList.remove('active');
-            } else {
-                auctionTab.style.display = 'none';
-                adminTab.style.display = 'block';
-                btns[0].classList.remove('active');
-                btns[1].classList.add('active');
-            }
-        }
-
-        // Таймер обратного отсчета
-        function startTimer() {
-            if (timerInterval) clearInterval(timerInterval);
-
-            timerInterval = setInterval(() => {
-                const now = Date.now();
-                const distance = auctionEndTime - now;
-
-                if (distance <= 0) {
-                    clearInterval(timerInterval);
-                    endAuction("⏰ Время аукциона вышло!");
-                    return;
-                }
-
-                const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-                const seconds = Math.floor((distance % (1000 * 60)) / 1000);
-
-                document.getElementById('timerBadge').innerText = 
-                    `⏳ До окончания: ${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-            }, 1000);
-        }
-
-        function endAuction(reason) {
-            isAuctionActive = false;
-            document.getElementById('timerBadge').innerText = reason;
-            document.getElementById('activeAuctionControls').style.display = 'none';
-            document.getElementById('endedMessage').style.display = 'block';
-        }
-
-        // Сделать ставку
-        function makeBid() {
-            if (!isAuctionActive) return;
-
-            const input = document.getElementById('bidAmount');
-            const newBid = parseInt(input.value, 10);
-
-            if (!newBid || newBid < currentMaxBid + minStep) {
-                tg.showAlert(`Минимальная ставка должна быть от ${currentMaxBid + minStep} ₽`);
-                return;
-            }
-
-            currentMaxBid = newBid;
-            document.getElementById('currentBid').innerText = `${currentMaxBid.toLocaleString('ru-RU')} ₽`;
-
-            const userName = currentUser?.username ? `@${currentUser.username}` : (currentUser?.first_name || 'Участник');
-            
-            const historyList = document.getElementById('historyList');
-            const li = document.createElement('li');
-            li.className = 'history-item';
-            li.innerHTML = `<span class="user-name">${userName}</span><strong>${currentMaxBid.toLocaleString('ru-RU')} ₽</strong>`;
-            historyList.insertBefore(li, historyList.firstChild);
-
-            input.value = currentMaxBid + minStep;
-            tg.HapticFeedback.notificationOccurred('success');
-            tg.showAlert(`Ставка ${currentMaxBid.toLocaleString('ru-RU')} ₽ принята!`);
-        }
-
-        // Мгновенная покупка (Форма оплаты / Завершение торгов)
-        function buyNow() {
-            if (!isAuctionActive) return;
-
-            tg.showConfirm(`Вы уверены, что хотите купить этот лот мгновенно за ${buyNowPrice.toLocaleString('ru-RU')} ₽?`, (confirmed) => {
-                if (confirmed) {
-                    endAuction("🎉 Лот выкуплен мгновенно!");
-                    tg.HapticFeedback.notificationOccurred('success');
-                    
-                    // Передаем данные боту для выставления счета / подтверждения оплаты
-                    const orderData = {
-                        action: 'buy_now',
-                        price: buyNowPrice,
-                        title: document.getElementById('lotTitle').innerText,
-                        user_id: currentUser?.id,
-                        username: currentUser?.username
-                    };
-                    
-                    tg.sendData(JSON.stringify(orderData)); // Отправляет данные боту и закрывает мини апп
-                }
-            });
-        }
-
-        // Создание нового лота через админку
-        function createNewLot() {
-            const imgUrl = document.getElementById('adminImgUrl').value;
-            const title = document.getElementById('adminTitle').value;
-            const desc = document.getElementById('adminDesc').value;
-            const startPrice = parseInt(document.getElementById('adminStartPrice').value, 10) || 1000;
-            const step = parseInt(document.getElementById('adminStep').value, 10) || 100;
-            const buyNowVal = parseInt(document.getElementById('adminBuyNow').value, 10) || 5000;
-            const durationMin = parseInt(document.getElementById('adminDuration').value, 10) || 30;
-
-            if (!title || !imgUrl) {
-                tg.showAlert('Заполните название и URL картинки!');
-                return;
-            }
-
-            // Обновляем данные лота
-            document.getElementById('lotImage').src = imgUrl;
-            document.getElementById('lotTitle').innerText = title;
-            document.getElementById('lotDesc').innerText = desc;
-            
-            currentMaxBid = startPrice;
-            minStep = step;
-            buyNowPrice = buyNowVal;
-            auctionEndTime = Date.now() + durationMin * 60 * 1000;
-            isAuctionActive = true;
-
-            document.getElementById('currentBid').innerText = `${currentMaxBid.toLocaleString('ru-RU')} ₽`;
-            document.getElementById('minStepText').innerText = `+${minStep.toLocaleString('ru-RU')} ₽`;
-            document.getElementById('buyNowBtn').innerText = `⚡ Купить сразу за ${buyNowPrice.toLocaleString('ru-RU')} ₽`;
-            document.getElementById('bidAmount').value = currentMaxBid + minStep;
-
-            document.getElementById('activeAuctionControls').style.display = 'block';
-            document.getElementById('endedMessage').style.display = 'none';
-
-            document.getElementById('historyList').innerHTML = `
-                <li class="history-item">
-                    <span class="user-name">Стартовая цена</span>
-                    <strong>${startPrice.toLocaleString('ru-RU')} ₽</strong>
-                </li>
-            `;
-
-            startTimer();
-
-            tg.HapticFeedback.notificationOccurred('success');
-            tg.showAlert('Новый лот успешно запущен!');
-            switchTab('auction');
-        }
-
-        function resetBids() {
-            tg.showConfirm('Сбросить текущие ставки?', (confirmed) => {
-                if (confirmed) {
-                    document.getElementById('historyList').innerHTML = `
-                        <li class="history-item">
-                            <span class="user-name">Стартовая цена</span>
-                            <strong>${currentMaxBid.toLocaleString('ru-RU')} ₽</strong>
-                        </li>
-                    `;
-                    tg.showAlert('Ставки сброшены.');
-                }
-            });
-        }
-
-        // Запускаем таймер при первом открытии
-        startTimer();
-    </script>
-</body>
-</html>
+// Закрытие модального окна
+function closeModal() {
+    const modal = document.getElementById('payModal');
+    if (modal) modal.remove();
+}
