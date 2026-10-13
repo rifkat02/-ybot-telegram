@@ -3,18 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Telegram Mini App</title>
-    <!-- Подключаем официальный SDK Telegram -->
+    <title>Аукцион рисунков</title>
+    <!-- Telegram WebApp SDK -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        /* Автоматическая адаптация под цвета темы Telegram */
         :root {
-            --bg-color: var(--tg-theme-bg-color, #ffffff);
-            --text-color: var(--tg-theme-text-color, #222222);
-            --hint-color: var(--tg-theme-hint-color, #999999);
-            --button-color: var(--tg-theme-button-color, #3390ec);
+            --bg-color: var(--tg-theme-bg-color, #18222d);
+            --text-color: var(--tg-theme-text-color, #ffffff);
+            --hint-color: var(--tg-theme-hint-color, #708499);
+            --button-color: var(--tg-theme-button-color, #2ea6ff);
             --button-text-color: var(--tg-theme-button-text-color, #ffffff);
-            --secondary-bg: var(--tg-theme-secondary-bg-color, #f1f1f1);
+            --secondary-bg: var(--tg-theme-secondary-bg-color, #212d3b);
+            --accent-color: #ffd700;
         }
 
         body {
@@ -27,139 +27,229 @@
         }
 
         .container {
-            max-width: 600px;
+            max-width: 500px;
             margin: 0 auto;
         }
 
-        h1 {
-            font-size: 22px;
-            margin-bottom: 8px;
-        }
-
-        .card {
+        .lot-card {
             background-color: var(--secondary-bg);
-            border-radius: 12px;
-            padding: 14px;
-            margin-bottom: 16px;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            margin-bottom: 20px;
         }
 
-        .card p {
-            margin: 6px 0;
-            font-size: 14px;
-        }
-
-        label {
-            display: block;
-            margin-bottom: 6px;
-            font-weight: 600;
-            font-size: 14px;
-        }
-
-        input, select {
+        .lot-image {
             width: 100%;
-            padding: 10px;
-            border: 1px solid var(--hint-color);
-            border-radius: 8px;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            font-size: 16px;
-            box-sizing: border-box;
+            height: 280px;
+            object-fit: cover;
+            display: block;
+            background-color: #111;
+        }
+
+        .lot-details {
+            padding: 16px;
+        }
+
+        .lot-title {
+            font-size: 20px;
+            font-weight: bold;
+            margin: 0 0 6px 0;
+        }
+
+        .lot-author {
+            color: var(--hint-color);
+            font-size: 14px;
             margin-bottom: 12px;
         }
 
-        button.action-btn {
+        .lot-description {
+            font-size: 14px;
+            line-height: 1.4;
+            margin-bottom: 16px;
+        }
+
+        .bid-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 12px;
+            border-radius: 12px;
+            margin-bottom: 16px;
+        }
+
+        .bid-box span {
+            display: block;
+            font-size: 12px;
+            color: var(--hint-color);
+        }
+
+        .bid-box strong {
+            font-size: 18px;
+            color: var(--accent-color);
+        }
+
+        .bid-input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        input[type="number"] {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid var(--hint-color);
+            border-radius: 10px;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-size: 16px;
+            outline: none;
+        }
+
+        .btn-bid {
             background-color: var(--button-color);
             color: var(--button-text-color);
             border: none;
-            border-radius: 8px;
-            padding: 12px;
-            width: 100%;
-            font-size: 16px;
+            border-radius: 10px;
+            padding: 12px 20px;
+            font-size: 15px;
             font-weight: bold;
             cursor: pointer;
-            margin-top: 10px;
         }
 
-        .result {
-            margin-top: 15px;
-            font-weight: bold;
+        .history-title {
             font-size: 16px;
-            color: var(--button-color);
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .history-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .history-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            font-size: 14px;
+        }
+
+        .history-item:last-child {
+            border-bottom: none;
+        }
+
+        .user-name {
+            color: var(--hint-color);
         }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <h1>Привет, <span id="username">Гость</span>! 👋</h1>
-        <p style="color: var(--hint-color); margin-top: 0;">Добро пожаловать в ваше Telegram Mini App</p>
+        <!-- Карточка активного лота -->
+        <div class="lot-card">
+            <!-- Демо-картинка (замените на свою ссылку при необходимости) -->
+            <img id="lotImage" class="lot-image" src="https://picsum.photos/600/400?random=1" alt="Рисунок">
+            
+            <div class="lot-details">
+                <h2 class="lot-title" id="lotTitle">Закат над неоновым городом</h2>
+                <div class="lot-author">Автор: @rumer07 (Вы)</div>
+                <p class="lot-description" id="lotDesc">
+                    Оригинальный цифровой рисунок. Формат A3, высокое разрешение. Победитель получит файл без водяных знаков и исходник.
+                </p>
 
-        <!-- Блок информации о пользователе из Telegram -->
-        <div class="card">
-            <p><strong>ID:</strong> <span id="user-id">-</span></p>
-            <p><strong>Username:</strong> <span id="user-handle">-</span></p>
-        </div>
+                <!-- Блок с ценой -->
+                <div class="bid-info">
+                    <div class="bid-box">
+                        <span>Текущая ставка</span>
+                        <strong id="currentBid">1 500 ₽</strong>
+                    </div>
+                    <div class="bid-box" style="text-align: right;">
+                        <span>Мин. шаг</span>
+                        <strong>+100 ₽</strong>
+                    </div>
+                </div>
 
-        <!-- Интерактивный блок (например, простой калькулятор / форма) -->
-        <div class="card">
-            <label for="inputValue">Введите параметр:</label>
-            <input type="number" id="inputValue" placeholder="Например, 100" value="10">
+                <!-- Форма поднять ставку -->
+                <div class="bid-input-group">
+                    <input type="number" id="bidAmount" placeholder="Ваша ставка" value="1600" step="100">
+                    <button class="btn-bid" onclick="makeBid()">Сделать ставку</button>
+                </div>
 
-            <label for="selectOption">Выберите категорию:</label>
-            <select id="selectOption">
-                <option value="1.5">Базовый тариф (x1.5)</option>
-                <option value="2.0">Стандартный тариф (x2.0)</option>
-                <option value="2.5">Премиум тариф (x2.5)</option>
-            </select>
-
-            <button class="action-btn" onclick="calculate()">Рассчитать</button>
-
-            <div class="result" id="resultBlock">Результат: 0</div>
+                <!-- История ставок -->
+                <div class="history-title">История ставок</div>
+                <ul class="history-list" id="historyList">
+                    <li class="history-item">
+                        <span class="user-name">@alex_art</span>
+                        <strong>1 500 ₽</strong>
+                    </li>
+                    <li class="history-item">
+                        <span class="user-name">@design_fan</span>
+                        <strong>1 200 ₽</strong>
+                    </li>
+                    <li class="history-item">
+                        <span class="user-name">Стартовая цена</span>
+                        <strong>1 000 ₽</strong>
+                    </li>
+                </ul>
+            </div>
         </div>
     </div>
 
     <script>
-        // 1. Инициализация Telegram WebApp
         const tg = window.Telegram.WebApp;
-        
-        // Разворачиваем на весь экран
         tg.expand();
-        
-        // Сообщаем Telegram, что приложение готово
         tg.ready();
 
-        // 2. Получаем данные пользователя из Telegram
-        const user = tg.initDataUnsafe?.user;
-        if (user) {
-            document.getElementById('username').innerText = user.first_name || 'Пользователь';
-            document.getElementById('user-id').innerText = user.id || 'Неизвестно';
-            document.getElementById('user-handle').innerText = user.username ? '@' + user.username : 'отсутствует';
+        let currentMaxBid = 1500;
+        const minStep = 100;
+
+        function makeBid() {
+            const input = document.getElementById('bidAmount');
+            const newBid = parseInt(input.value, 10);
+
+            if (!newBid || newBid < currentMaxBid + minStep) {
+                tg.showAlert(`Минимальная ставка должна быть не менее ${currentMaxBid + minStep} ₽`);
+                return;
+            }
+
+            // Обновляем текущую ставку
+            currentMaxBid = newBid;
+            document.getElementById('currentBid').innerText = `${currentMaxBid.toLocaleString('ru-RU')} ₽`;
+
+            // Добавляем запись в историю
+            const user = tg.initDataUnsafe?.user;
+            const userName = user?.username ? `@${user.username}` : (user?.first_name || 'Аноним');
+            
+            const historyList = document.getElementById('historyList');
+            const li = document.createElement('li');
+            li.className = 'history-item';
+            li.innerHTML = `<span class="user-name">${userName}</span><strong>${currentMaxBid.toLocaleString('ru-RU')} ₽</strong>`;
+            historyList.insertBefore(li, historyList.firstChild);
+
+            // Рекомендуемая следующая ставка
+            input.value = currentMaxBid + minStep;
+
+            // Виброотклик Telegram
+            tg.HapticFeedback.notificationOccurred('success');
+
+            // Показываем подтверждение
+            tg.showAlert(`Ваша ставка ${currentMaxBid} ₽ принята!`);
+
+            // Отправляем данные боту (для обработки на бэкенде)
+            const bidData = {
+                action: 'new_bid',
+                amount: currentMaxBid,
+                user_id: user?.id,
+                username: user?.username
+            };
+            
+            // Если включена кнопка MainButton, можно передавать через tg.sendData(JSON.stringify(bidData));
         }
-
-        // 3. Пример логики калькулятора / функционала
-        function calculate() {
-            const val = parseFloat(document.getElementById('inputValue').value) || 0;
-            const multiplier = parseFloat(document.getElementById('selectOption').value) || 1;
-            const total = val * multiplier;
-
-            document.getElementById('resultBlock').innerText = `Результат: ${total}`;
-
-            // Показываем стандартное всплывающее уведомление Telegram
-            tg.HapticFeedback.impactOccurred('medium'); // Тактильный отклик при клике
-        }
-
-        // 4. Пример работы с системной главной кнопкой Telegram (MainButton)
-        tg.MainButton.text = "ОТПРАВИТЬ ДАННЫЕ";
-        tg.MainButton.color = tg.themeParams.button_color || "#3390ec";
-        tg.MainButton.textColor = tg.themeParams.button_text_color || "#ffffff";
-        tg.MainButton.show();
-
-        // Событие при нажатии на нижнюю кнопку Telegram
-        Telegram.WebApp.onEvent('mainButtonClicked', function(){
-            const val = document.getElementById('resultBlock').innerText;
-            tg.sendData(val); // Отправляет данные обратно боту в чат и закрывает Mini App
-        });
     </script>
 </body>
 </html>
-
