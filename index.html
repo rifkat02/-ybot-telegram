@@ -341,14 +341,15 @@
         tg.expand();
         tg.ready();
 
-        const ADMIN_ID = 8801572470; // Ваш Telegram ID
+        const ADMIN_ID = 8801572470; 
+        const BOT_TOKEN = "8972901545:AAGUuuyCUBLQpPsAvI17hTme9xmZlbiVRYQ";
         const currentUser = tg.initDataUnsafe?.user;
 
         if (currentUser && currentUser.id === ADMIN_ID) {
             document.getElementById('adminNav').style.display = 'grid';
         }
 
-        // ВАШИ КЛЮЧИ FIREBASE
+        // КЛЮЧИ FIREBASE
         const firebaseConfig = {
             apiKey: "AIzaSyCAEQBy_BZb5DM548Z7Vm-7kEAuSh6tpmA",
             authDomain: "drawingauction.firebaseapp.com",
@@ -367,6 +368,21 @@
         let paymentSettings = { phone: '+7 (900) 000-00-00', bank: 'Сбербанк / СБП', url: 'https://yoomoney.ru/' };
         let appUsers = [];
         let timerInterval = null;
+
+        // Отправка сообщений ботом в личку админу
+        function sendTelegramNotification(text) {
+            if (!BOT_TOKEN) return;
+            const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
+            fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    chat_id: ADMIN_ID,
+                    text: text,
+                    parse_mode: 'HTML'
+                })
+            }).catch(err => console.error("Ошибка отправки уведомления:", err));
+        }
 
         // Синхронизация данных в реальном времени из Firebase
         db.ref('auction_data').on('value', (snapshot) => {
@@ -521,6 +537,13 @@
             saveDataToCloud();
             renderActiveLot();
 
+            // Отправляем уведомление админу в бот
+            const msgText = `🔥 <b>Новая ставка на аукционе!</b>\n\n` +
+                            `🖼 <b>Лот:</b> ${lot.title}\n` +
+                            `💰 <b>Сумма:</b> ${newBid.toLocaleString('ru-RU')} ₽\n` +
+                            `👤 <b>Участник:</b> ${userName}`;
+            sendTelegramNotification(msgText);
+
             tg.HapticFeedback.notificationOccurred('success');
             tg.showAlert(`Ставка ${newBid.toLocaleString('ru-RU')} ₽ принята!`);
         }
@@ -588,6 +611,14 @@
                     time: new Date().toLocaleString()
                 };
                 saveDataToCloud();
+
+                // Уведомление в личку про мгновенный выкуп
+                const msgText = `🎉 <b>Лот выкуплен мгновенно!</b>\n\n` +
+                                `🖼 <b>Лот:</b> ${lot.title}\n` +
+                                `💵 <b>Сумма:</b> ${lot.buyNowPrice.toLocaleString('ru-RU')} ₽\n` +
+                                `💳 <b>Способ оплаты:</b> ${method}\n` +
+                                `👤 <b>Покупатель:</b> ${currentUser?.first_name || 'Аноним'} (${currentUser?.username ? '@' + currentUser.username : 'без username'})`;
+                sendTelegramNotification(msgText);
             }
             closeModal();
             renderActiveLot();
