@@ -33,9 +33,9 @@
             margin: 0 auto;
         }
 
-        /* Переключатель вкладок (для админа) */
+        /* Навигация админа */
         .admin-nav {
-            display: none; /* По умолчанию скрыт */
+            display: none;
             grid-template-columns: 1fr 1fr;
             gap: 8px;
             margin-bottom: 16px;
@@ -99,6 +99,18 @@
             margin-bottom: 16px;
         }
 
+        /* Таймер */
+        .timer-badge {
+            background: rgba(229, 57, 53, 0.15);
+            color: var(--danger-color);
+            padding: 8px 12px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 14px;
+        }
+
         .bid-info {
             display: flex;
             justify-content: space-between;
@@ -106,7 +118,7 @@
             background: rgba(255, 255, 255, 0.05);
             padding: 12px;
             border-radius: 12px;
-            margin-bottom: 16px;
+            margin-bottom: 12px;
         }
 
         .bid-box span {
@@ -123,7 +135,7 @@
         .bid-input-group {
             display: flex;
             gap: 10px;
-            margin-bottom: 16px;
+            margin-bottom: 10px;
         }
 
         input, textarea {
@@ -151,6 +163,11 @@
             width: 100%;
         }
 
+        .btn-success {
+            background-color: var(--success-color);
+            margin-bottom: 10px;
+        }
+
         .btn-danger {
             background-color: var(--danger-color);
         }
@@ -158,6 +175,7 @@
         .history-title {
             font-size: 16px;
             font-weight: bold;
+            margin-top: 16px;
             margin-bottom: 10px;
         }
 
@@ -183,9 +201,9 @@
             color: var(--hint-color);
         }
 
-        /* Блок Админки */
+        /* Админ панель */
         .admin-panel {
-            display: none; /* Скрыто по умолчанию */
+            display: none;
             background-color: var(--secondary-bg);
             border-radius: 16px;
             padding: 16px;
@@ -211,7 +229,7 @@
 <body>
 
     <div class="container">
-        <!-- Навигация (видима только админу) -->
+        <!-- Навигация -->
         <div class="admin-nav" id="adminNav">
             <button class="nav-btn active" onclick="switchTab('auction')">🔥 Аукцион</button>
             <button class="nav-btn" onclick="switchTab('admin')">⚙️ Админка</button>
@@ -226,8 +244,11 @@
                     <h2 class="lot-title" id="lotTitle">Закат над неоновым городом</h2>
                     <div class="lot-author">Автор: @rumer07</div>
                     <p class="lot-description" id="lotDesc">
-                        Оригинальный цифровой рисунок. Победитель получит файл без водяных знаков и исходники.
+                        Оригинальный цифровой рисунок в высоком разрешении.
                     </p>
+
+                    <!-- Таймер -->
+                    <div class="timer-badge" id="timerBadge">⏳ До окончания: 00:00:00</div>
 
                     <div class="bid-info">
                         <div class="bid-box">
@@ -240,9 +261,18 @@
                         </div>
                     </div>
 
-                    <div class="bid-input-group">
-                        <input type="number" id="bidAmount" placeholder="Ваша ставка" value="1100" step="100">
-                        <button class="btn" style="width: auto;" onclick="makeBid()">Ставка</button>
+                    <!-- Форма ставки -->
+                    <div id="activeAuctionControls">
+                        <div class="bid-input-group">
+                            <input type="number" id="bidAmount" placeholder="Ваша ставка" value="1100" step="100">
+                            <button class="btn" style="width: auto;" onclick="makeBid()">Ставка</button>
+                        </div>
+                        <!-- Кнопка мгновенной покупки -->
+                        <button class="btn btn-success" id="buyNowBtn" onclick="buyNow()">⚡ Купить сразу за 5 000 ₽</button>
+                    </div>
+
+                    <div id="endedMessage" style="display: none; text-align: center; color: var(--danger-color); font-weight: bold; padding: 10px;">
+                        🚫 Аукцион завершен!
                     </div>
 
                     <div class="history-title">История ставок</div>
@@ -256,32 +286,38 @@
             </div>
         </div>
 
-        <!-- 2. Вкладка Админки (Только для вас) -->
+        <!-- 2. Вкладка Админки -->
         <div id="tabAdmin" class="admin-panel">
             <span class="admin-badge">Панель администратора</span>
-            <h3>Выставить новый лот</h3>
+            <h3>Создать новый лот</h3>
             
             <label style="font-size: 13px; color: var(--hint-color);">URL Изображения:</label>
-            <input type="text" id="adminImgUrl" placeholder="https://site.com/image.jpg" value="https://picsum.photos/600/400?random=2">
+            <input type="text" id="adminImgUrl" value="https://picsum.photos/600/400?random=2">
 
-            <label style="font-size: 13px; color: var(--hint-color);">Название картинки:</label>
-            <input type="text" id="adminTitle" placeholder="Название лота" value="Космический пейзаж">
+            <label style="font-size: 13px; color: var(--hint-color);">Название лота:</label>
+            <input type="text" id="adminTitle" value="Киберпанк Портрет">
 
             <label style="font-size: 13px; color: var(--hint-color);">Описание:</label>
-            <textarea id="adminDesc" rows="3" placeholder="Описание лота...">Арт в высоком разрешении 4K.</textarea>
+            <textarea id="adminDesc" rows="2">Эксклюзивный арт с полными правами.</textarea>
 
             <label style="font-size: 13px; color: var(--hint-color);">Стартовая цена (₽):</label>
-            <input type="number" id="adminStartPrice" value="2000">
+            <input type="number" id="adminStartPrice" value="1500">
 
             <label style="font-size: 13px; color: var(--hint-color);">Минимальный шаг (₽):</label>
-            <input type="number" id="adminStep" value="200">
+            <input type="number" id="adminStep" value="150">
 
-            <button class="btn" onclick="createNewLot()" style="margin-top: 10px;">Опубликовать лот</button>
+            <label style="font-size: 13px; color: var(--hint-color);">Цена мгновенного выкупа (₽):</label>
+            <input type="number" id="adminBuyNow" value="6000">
+
+            <label style="font-size: 13px; color: var(--hint-color);">Длительность аукциона (минут):</label>
+            <input type="number" id="adminDuration" value="30">
+
+            <button class="btn" onclick="createNewLot()" style="margin-top: 10px;">Опубликовать и запустить</button>
 
             <hr style="border: 0; border-top: 1px solid rgba(255,255,255,0.1); margin: 20px 0;">
 
-            <h3>Управление торгом</h3>
-            <button class="btn btn-danger" onclick="resetBids()">Сбросить историю ставок</button>
+            <h3>Управление</h3>
+            <button class="btn btn-danger" onclick="resetBids()">Сбросить ставки</button>
         </div>
     </div>
 
@@ -290,19 +326,20 @@
         tg.expand();
         tg.ready();
 
-        // Вставьте сюда ваш Telegram ID
-        const ADMIN_ID = 8801572470;
+        const ADMIN_ID = 8801572470; // Ваш Telegram ID
 
         let currentMaxBid = 1000;
         let minStep = 100;
+        let buyNowPrice = 5000;
+        let auctionEndTime = Date.now() + 30 * 60 * 1000; // По умолчанию 30 минут
+        let timerInterval = null;
+        let isAuctionActive = true;
 
-        // Проверяем, является ли текущий пользователь админом
         const currentUser = tg.initDataUnsafe?.user;
         if (currentUser && currentUser.id === ADMIN_ID) {
             document.getElementById('adminNav').style.display = 'grid';
         }
 
-        // Переключение вкладок
         function switchTab(tab) {
             const auctionTab = document.getElementById('tabAuction');
             const adminTab = document.getElementById('tabAdmin');
@@ -321,8 +358,40 @@
             }
         }
 
+        // Таймер обратного отсчета
+        function startTimer() {
+            if (timerInterval) clearInterval(timerInterval);
+
+            timerInterval = setInterval(() => {
+                const now = Date.now();
+                const distance = auctionEndTime - now;
+
+                if (distance <= 0) {
+                    clearInterval(timerInterval);
+                    endAuction("⏰ Время аукциона вышло!");
+                    return;
+                }
+
+                const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+                document.getElementById('timerBadge').innerText = 
+                    `⏳ До окончания: ${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            }, 1000);
+        }
+
+        function endAuction(reason) {
+            isAuctionActive = false;
+            document.getElementById('timerBadge').innerText = reason;
+            document.getElementById('activeAuctionControls').style.display = 'none';
+            document.getElementById('endedMessage').style.display = 'block';
+        }
+
         // Сделать ставку
         function makeBid() {
+            if (!isAuctionActive) return;
+
             const input = document.getElementById('bidAmount');
             const newBid = parseInt(input.value, 10);
 
@@ -344,35 +413,66 @@
 
             input.value = currentMaxBid + minStep;
             tg.HapticFeedback.notificationOccurred('success');
-            tg.showAlert(`Ставка ${currentMaxBid} ₽ принята!`);
+            tg.showAlert(`Ставка ${currentMaxBid.toLocaleString('ru-RU')} ₽ принята!`);
         }
 
-        // Админка: Опубликовать новый лот
+        // Мгновенная покупка (Форма оплаты / Завершение торгов)
+        function buyNow() {
+            if (!isAuctionActive) return;
+
+            tg.showConfirm(`Вы уверены, что хотите купить этот лот мгновенно за ${buyNowPrice.toLocaleString('ru-RU')} ₽?`, (confirmed) => {
+                if (confirmed) {
+                    endAuction("🎉 Лот выкуплен мгновенно!");
+                    tg.HapticFeedback.notificationOccurred('success');
+                    
+                    // Передаем данные боту для выставления счета / подтверждения оплаты
+                    const orderData = {
+                        action: 'buy_now',
+                        price: buyNowPrice,
+                        title: document.getElementById('lotTitle').innerText,
+                        user_id: currentUser?.id,
+                        username: currentUser?.username
+                    };
+                    
+                    tg.sendData(JSON.stringify(orderData)); // Отправляет данные боту и закрывает мини апп
+                }
+            });
+        }
+
+        // Создание нового лота через админку
         function createNewLot() {
             const imgUrl = document.getElementById('adminImgUrl').value;
             const title = document.getElementById('adminTitle').value;
             const desc = document.getElementById('adminDesc').value;
             const startPrice = parseInt(document.getElementById('adminStartPrice').value, 10) || 1000;
             const step = parseInt(document.getElementById('adminStep').value, 10) || 100;
+            const buyNowVal = parseInt(document.getElementById('adminBuyNow').value, 10) || 5000;
+            const durationMin = parseInt(document.getElementById('adminDuration').value, 10) || 30;
 
             if (!title || !imgUrl) {
                 tg.showAlert('Заполните название и URL картинки!');
                 return;
             }
 
-            // Обновляем данные лота в интерфейсе
+            // Обновляем данные лота
             document.getElementById('lotImage').src = imgUrl;
             document.getElementById('lotTitle').innerText = title;
             document.getElementById('lotDesc').innerText = desc;
             
             currentMaxBid = startPrice;
             minStep = step;
+            buyNowPrice = buyNowVal;
+            auctionEndTime = Date.now() + durationMin * 60 * 1000;
+            isAuctionActive = true;
 
             document.getElementById('currentBid').innerText = `${currentMaxBid.toLocaleString('ru-RU')} ₽`;
             document.getElementById('minStepText').innerText = `+${minStep.toLocaleString('ru-RU')} ₽`;
+            document.getElementById('buyNowBtn').innerText = `⚡ Купить сразу за ${buyNowPrice.toLocaleString('ru-RU')} ₽`;
             document.getElementById('bidAmount').value = currentMaxBid + minStep;
 
-            // Сбрасываем историю под новый лот
+            document.getElementById('activeAuctionControls').style.display = 'block';
+            document.getElementById('endedMessage').style.display = 'none';
+
             document.getElementById('historyList').innerHTML = `
                 <li class="history-item">
                     <span class="user-name">Стартовая цена</span>
@@ -380,14 +480,15 @@
                 </li>
             `;
 
+            startTimer();
+
             tg.HapticFeedback.notificationOccurred('success');
-            tg.showAlert('Новый лот успешно опубликован!');
-            switchTab('auction'); // Переключаем обратно на аукцион
+            tg.showAlert('Новый лот успешно запущен!');
+            switchTab('auction');
         }
 
-        // Админка: Сброс ставок
         function resetBids() {
-            tg.showConfirm('Вы уверены, что хотите сбросить историю ставок?', (confirmed) => {
+            tg.showConfirm('Сбросить текущие ставки?', (confirmed) => {
                 if (confirmed) {
                     document.getElementById('historyList').innerHTML = `
                         <li class="history-item">
@@ -395,10 +496,13 @@
                             <strong>${currentMaxBid.toLocaleString('ru-RU')} ₽</strong>
                         </li>
                     `;
-                    tg.showAlert('История ставок сброшена.');
+                    tg.showAlert('Ставки сброшены.');
                 }
             });
         }
+
+        // Запускаем таймер при первом открытии
+        startTimer();
     </script>
 </body>
 </html>
